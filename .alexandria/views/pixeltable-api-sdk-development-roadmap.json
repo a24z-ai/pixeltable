@@ -1,0 +1,23 @@
+{
+  "id": "pixeltable-api-sdk-development-roadmap",
+  "version": "1.0.0",
+  "name": "Pixeltable API & SDK Development Roadmap",
+  "description": "Codebase view extracted from documentation",
+  "rows": 1,
+  "cols": 1,
+  "cells": {},
+  "overviewPath": "API_ROADMAP.md",
+  "category": "other",
+  "displayOrder": 0,
+  "timestamp": "2025-09-10T21:23:29.434Z",
+  "metadata": {
+    "generationType": "user",
+    "ui": {
+      "enabled": true,
+      "rows": 1,
+      "cols": 1,
+      "showCellLabels": true,
+      "cellLabelPosition": "top"
+    }
+  }
+}
