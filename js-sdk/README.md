@@ -19,7 +19,7 @@ import PixeltableClient from '@a24z/pixeltable-sdk';
 
 const client = new PixeltableClient({
   baseUrl: 'http://localhost:8000/api/v1', // Optional, this is the default
-  apiKey: 'your-api-key' // Optional, for authentication when implemented
+  apiKey: 'pxt_live_your_api_key_here' // Optional, but recommended for production
 });
 
 // Check API health
@@ -55,6 +55,38 @@ console.log(tableInfo);
 
 // Drop a table
 await client.dropTable('my_table');
+```
+
+## Authentication & Security (New in v0.3.0)
+
+```typescript
+// Create an API key for production use
+const { api_key, key_info } = await client.createAPIKey({
+  name: 'Production API Key',
+  permissions: [
+    { resource: 'tables', actions: ['read', 'write', 'create', 'delete'] },
+    { resource: 'data', actions: ['read', 'write'] }
+  ],
+  expires_at: '2025-12-31T23:59:59Z' // Optional expiration
+});
+
+// IMPORTANT: Save the api_key securely - it won't be shown again!
+console.log('Save this key:', api_key);
+
+// Use the API key in a new client
+const authenticatedClient = new PixeltableClient({
+  apiKey: api_key
+});
+
+// Verify authentication
+const auth = await authenticatedClient.verifyAuth();
+console.log('Authenticated with permissions:', auth.permissions);
+
+// Manage API keys
+const keys = await client.listAPIKeys();
+const stats = await client.getAPIKeyUsage(key_info.id, 24); // Last 24 hours
+await client.rotateAPIKey(key_info.id); // Rotate for security
+await client.revokeAPIKey(key_info.id); // Revoke when no longer needed
 ```
 
 ## Data Operations (New in v0.2.0)
@@ -192,6 +224,36 @@ Deletes rows matching the specified conditions.
 #### `client.countRows(tableName)`
 
 Returns the count of rows in a table.
+
+### Authentication Operations
+
+#### `client.createAPIKey(request)`
+
+Creates a new API key with specified permissions.
+
+#### `client.listAPIKeys()`
+
+Lists all API keys (without the actual key values).
+
+#### `client.getAPIKey(keyId)`
+
+Gets information about a specific API key.
+
+#### `client.revokeAPIKey(keyId?, keyPrefix?)`
+
+Revokes an API key by ID or prefix.
+
+#### `client.rotateAPIKey(keyId)`
+
+Rotates an API key (creates new, revokes old).
+
+#### `client.getAPIKeyUsage(keyId, hours?)`
+
+Gets usage statistics for an API key.
+
+#### `client.verifyAuth()`
+
+Verifies the current authentication and returns permissions.
 
 ## TypeScript Support
 

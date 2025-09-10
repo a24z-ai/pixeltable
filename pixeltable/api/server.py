@@ -9,7 +9,8 @@ from fastapi.responses import JSONResponse
 
 import pixeltable as pxt
 from pixeltable.api import __version__
-from pixeltable.api.routers import health, tables, data
+from pixeltable.api.routers import health, tables, data, auth
+from pixeltable.api.middleware import AuthenticationMiddleware, RateLimitMiddleware
 
 
 @asynccontextmanager
@@ -36,7 +37,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Add authentication middleware (optional auth for now)
+app.add_middleware(
+    AuthenticationMiddleware,
+    require_auth=False  # Set to True to require auth for all endpoints
+)
+
+# Add rate limiting middleware
+app.add_middleware(RateLimitMiddleware)
+
 app.include_router(health.router, prefix="/api/v1", tags=["health"])
+app.include_router(auth.router, prefix="/api/v1", tags=["authentication"])
 app.include_router(tables.router, prefix="/api/v1", tags=["tables"])
 app.include_router(data.router, prefix="/api/v1", tags=["data"])
 

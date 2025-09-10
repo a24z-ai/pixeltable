@@ -67,6 +67,44 @@ export interface DeleteRowsRequest {
   soft_delete?: boolean;
 }
 
+export interface Permission {
+  resource: 'tables' | 'data' | 'media' | 'admin';
+  actions: Array<'read' | 'write' | 'delete' | 'create'>;
+  constraints?: Record<string, any>;
+}
+
+export interface CreateAPIKeyRequest {
+  name: string;
+  permissions: Permission[];
+  expires_at?: string;
+}
+
+export interface APIKeyInfo {
+  id: string;
+  name: string;
+  key_prefix: string;
+  permissions: Permission[];
+  created_at: string;
+  last_used?: string;
+  expires_at?: string;
+  revoked: boolean;
+}
+
+export interface APIKeyResponse {
+  api_key: string;
+  key_info: APIKeyInfo;
+}
+
+export interface APIUsageStats {
+  key_id: string;
+  endpoint_counts: Record<string, number>;
+  status_code_counts: Record<number, number>;
+  total_requests: number;
+  avg_response_time_ms: number;
+  period_start: string;
+  period_end: string;
+}
+
 export class PixeltableClient {
   private baseUrl: string;
   private headers: Record<string, string>;
@@ -253,6 +291,95 @@ export class PixeltableClient {
     if (!response.ok) {
       const error = await response.json() as { detail: string };
       throw new Error(`Failed to count rows: ${error.detail}`);
+    }
+    return response.json();
+  }
+
+  // Authentication Operations
+
+  async createAPIKey(request: CreateAPIKeyRequest): Promise<APIKeyResponse> {
+    const response = await fetch(`${this.baseUrl}/auth/api-keys`, {
+      method: 'POST',
+      headers: this.headers,
+      body: JSON.stringify(request),
+    });
+    if (!response.ok) {
+      const error = await response.json() as { detail: string };
+      throw new Error(`Failed to create API key: ${error.detail}`);
+    }
+    return response.json();
+  }
+
+  async listAPIKeys(): Promise<APIKeyInfo[]> {
+    const response = await fetch(`${this.baseUrl}/auth/api-keys`, {
+      headers: this.headers,
+    });
+    if (!response.ok) {
+      const error = await response.json() as { detail: string };
+      throw new Error(`Failed to list API keys: ${error.detail}`);
+    }
+    return response.json();
+  }
+
+  async getAPIKey(keyId: string): Promise<APIKeyInfo> {
+    const response = await fetch(`${this.baseUrl}/auth/api-keys/${keyId}`, {
+      headers: this.headers,
+    });
+    if (!response.ok) {
+      const error = await response.json() as { detail: string };
+      throw new Error(`Failed to get API key: ${error.detail}`);
+    }
+    return response.json();
+  }
+
+  async revokeAPIKey(keyId?: string, keyPrefix?: string): Promise<{ message: string }> {
+    const response = await fetch(`${this.baseUrl}/auth/api-keys/revoke`, {
+      method: 'POST',
+      headers: this.headers,
+      body: JSON.stringify({ key_id: keyId, key_prefix: keyPrefix }),
+    });
+    if (!response.ok) {
+      const error = await response.json() as { detail: string };
+      throw new Error(`Failed to revoke API key: ${error.detail}`);
+    }
+    return response.json();
+  }
+
+  async rotateAPIKey(keyId: string): Promise<APIKeyResponse> {
+    const response = await fetch(`${this.baseUrl}/auth/api-keys/${keyId}/rotate`, {
+      method: 'POST',
+      headers: this.headers,
+    });
+    if (!response.ok) {
+      const error = await response.json() as { detail: string };
+      throw new Error(`Failed to rotate API key: ${error.detail}`);
+    }
+    return response.json();
+  }
+
+  async getAPIKeyUsage(keyId: string, hours: number = 24): Promise<APIUsageStats> {
+    const response = await fetch(`${this.baseUrl}/auth/api-keys/${keyId}/usage?hours=${hours}`, {
+      headers: this.headers,
+    });
+    if (!response.ok) {
+      const error = await response.json() as { detail: string };
+      throw new Error(`Failed to get API key usage: ${error.detail}`);
+    }
+    return response.json();
+  }
+
+  async verifyAuth(): Promise<{
+    valid: boolean;
+    api_key_id?: string;
+    permissions?: Permission[];
+    rate_limit?: Record<string, any>;
+  }> {
+    const response = await fetch(`${this.baseUrl}/auth/verify`, {
+      headers: this.headers,
+    });
+    if (!response.ok) {
+      const error = await response.json() as { detail: string };
+      throw new Error(`Failed to verify auth: ${error.detail}`);
     }
     return response.json();
   }

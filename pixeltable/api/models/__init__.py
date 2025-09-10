@@ -19,6 +19,16 @@ from .tables import (
     TableInfo,
     ColumnInfo,
 )
+from .auth import (
+    Permission,
+    CreateAPIKeyRequest,
+    APIKeyInfo,
+    APIKeyResponse,
+    RevokeAPIKeyRequest,
+    APIUsageStats,
+    RateLimitConfig,
+    AuthContext,
+)
 
 __all__ = [
     'InsertRowRequest',
@@ -36,4 +46,12 @@ __all__ = [
     'CreateTableRequest',
     'TableInfo',
     'ColumnInfo',
+    'Permission',
+    'CreateAPIKeyRequest',
+    'APIKeyInfo',
+    'APIKeyResponse',
+    'RevokeAPIKeyRequest',
+    'APIUsageStats',
+    'RateLimitConfig',
+    'AuthContext',
 ]
