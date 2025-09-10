@@ -1,0 +1,37 @@
+# Makefile for running integration tests
+
+.PHONY: help test-local test-docker test-ci clean
+
+help:
+	@echo "Available commands:"
+	@echo "  make test-local   - Run tests against local API server"
+	@echo "  make test-docker  - Run tests in Docker environment"
+	@echo "  make test-ci      - Run tests in CI mode"
+	@echo "  make clean        - Clean up test artifacts"
+
+# Run tests locally (requires API server running)
+test-local:
+	@echo "Starting API server..."
+	@python -m pixeltable.api &
+	@sleep 3
+	@echo "Running integration tests..."
+	@cd js-sdk && bun test ../tests/integration/api.test.ts
+	@pkill -f "python -m pixeltable.api" || true
+
+# Run tests in Docker
+test-docker:
+	@echo "Building and running tests in Docker..."
+	docker-compose -f docker-compose.test.yml up --build --abort-on-container-exit
+	docker-compose -f docker-compose.test.yml down -v
+
+# CI mode - fail fast, verbose output
+test-ci:
+	docker-compose -f docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from test-runner
+	docker-compose -f docker-compose.test.yml down -v
+
+# Clean up
+clean:
+	docker-compose -f docker-compose.test.yml down -v
+	rm -rf js-sdk/node_modules
+	rm -rf js-sdk/dist
+	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true

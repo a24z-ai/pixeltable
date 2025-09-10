@@ -1,0 +1,83 @@
+{
+  "id": "pixeltable-api-integration-testing-strategy",
+  "version": "1.0.0",
+  "name": "Pixeltable API Integration Testing Strategy",
+  "description": "Codebase view extracted from documentation",
+  "rows": 2,
+  "cols": 3,
+  "cells": {
+    "test-infrastructure": {
+      "coordinates": [0, 0],
+      "label": "Test Infrastructure",
+      "purpose": "Core testing files and configuration",
+      "files": [
+        "tests/integration/api.test.ts",
+        "Makefile.test",
+        "scripts/test-api.sh",
+        "scripts/generate-types.sh"
+      ]
+    },
+    "docker-environment": {
+      "coordinates": [0, 1],
+      "label": "Docker Environment",
+      "purpose": "Containerized testing setup",
+      "files": [
+        "docker-compose.test.yml",
+        "Dockerfile.api",
+        "Dockerfile.test"
+      ]
+    },
+    "ci-cd-pipeline": {
+      "coordinates": [0, 2],
+      "label": "CI/CD Pipeline",
+      "purpose": "Automated testing workflows",
+      "files": [
+        ".github/workflows/api-integration-tests.yml",
+        ".github/workflows/pytest.yml"
+      ]
+    },
+    "api-implementation": {
+      "coordinates": [1, 0],
+      "label": "API Implementation",
+      "purpose": "FastAPI server being tested",
+      "files": [
+        "pixeltable/api/server.py",
+        "pixeltable/api/routers/health.py",
+        "pixeltable/api/routers/tables.py"
+      ]
+    },
+    "sdk-implementation": {
+      "coordinates": [1, 1],
+      "label": "SDK Implementation",
+      "purpose": "JavaScript client being tested",
+      "files": [
+        "js-sdk/src/index.ts",
+        "js-sdk/package.json",
+        "js-sdk/tsconfig.json"
+      ]
+    },
+    "documentation": {
+      "coordinates": [1, 2],
+      "label": "Documentation",
+      "purpose": "Testing strategy and guides",
+      "files": [
+        "INTEGRATION_TESTING.md",
+        "API_MILESTONE_1.md"
+      ]
+    }
+  },
+  "overviewPath": "INTEGRATION_TESTING.md",
+  "category": "other",
+  "displayOrder": 0,
+  "timestamp": "2025-09-10T19:14:20.616Z",
+  "metadata": {
+    "generationType": "user",
+    "ui": {
+      "enabled": true,
+      "rows": 1,
+      "cols": 1,
+      "showCellLabels": true,
+      "cellLabelPosition": "top"
+    }
+  }
+}

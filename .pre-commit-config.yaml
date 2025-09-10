@@ -1,0 +1,45 @@
+# Pre-commit hooks for Pixeltable
+repos:
+  # Python hooks
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.4
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.13.0
+    hooks:
+      - id: mypy
+        files: ^pixeltable/api/
+        additional_dependencies: [fastapi, pydantic]
+
+  # TypeScript/JavaScript hooks
+  - repo: local
+    hooks:
+      - id: js-sdk-typecheck
+        name: TypeScript Type Check
+        entry: bash -c 'cd js-sdk && bun run typecheck'
+        language: system
+        files: ^js-sdk/.*\.(ts|tsx|js|jsx)$
+        pass_filenames: false
+
+      - id: js-sdk-test
+        name: JS SDK Tests
+        entry: bash -c 'cd js-sdk && bun test'
+        language: system
+        files: ^js-sdk/.*\.(ts|tsx|js|jsx)$
+        pass_filenames: false
+
+  # General hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+      - id: check-merge-conflict

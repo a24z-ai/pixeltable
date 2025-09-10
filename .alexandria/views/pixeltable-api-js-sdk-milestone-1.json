@@ -1,0 +1,83 @@
+{
+  "id": "pixeltable-api-js-sdk-milestone-1",
+  "version": "1.0.0",
+  "name": "Pixeltable API & JS SDK - Milestone 1",
+  "description": "Codebase view extracted from documentation",
+  "rows": 2,
+  "cols": 3,
+  "cells": {
+    "fastapi-server": {
+      "coordinates": [0, 0],
+      "label": "FastAPI Server",
+      "purpose": "REST API server implementation",
+      "files": [
+        "pixeltable/api/__init__.py",
+        "pixeltable/api/__main__.py",
+        "pixeltable/api/server.py",
+        "pixeltable/api/routers/health.py",
+        "pixeltable/api/routers/tables.py"
+      ]
+    },
+    "javascript-sdk": {
+      "coordinates": [0, 1],
+      "label": "JavaScript SDK",
+      "purpose": "TypeScript client library",
+      "files": [
+        "js-sdk/package.json",
+        "js-sdk/tsconfig.json",
+        "js-sdk/src/index.ts",
+        "js-sdk/scripts/generate-types.ts"
+      ]
+    },
+    "configuration": {
+      "coordinates": [0, 2],
+      "label": "Configuration",
+      "purpose": "Project setup and dependencies",
+      "files": [
+        "pyproject.toml"
+      ]
+    },
+    "testing": {
+      "coordinates": [1, 0],
+      "label": "Testing",
+      "purpose": "Integration test setup",
+      "files": [
+        "tests/integration/api.test.ts",
+        "scripts/test-api.sh"
+      ]
+    },
+    "docker-setup": {
+      "coordinates": [1, 1],
+      "label": "Docker Setup",
+      "purpose": "Containerization for testing",
+      "files": [
+        "docker-compose.test.yml",
+        "Dockerfile.api",
+        "Dockerfile.test"
+      ]
+    },
+    "ci-cd": {
+      "coordinates": [1, 2],
+      "label": "CI/CD",
+      "purpose": "Automated testing pipeline",
+      "files": [
+        ".github/workflows/api-integration-tests.yml",
+        "Makefile.test"
+      ]
+    }
+  },
+  "overviewPath": "API_MILESTONE_1.md",
+  "category": "other",
+  "displayOrder": 0,
+  "timestamp": "2025-09-10T19:13:48.505Z",
+  "metadata": {
+    "generationType": "user",
+    "ui": {
+      "enabled": true,
+      "rows": 1,
+      "cols": 1,
+      "showCellLabels": true,
+      "cellLabelPosition": "top"
+    }
+  }
+}

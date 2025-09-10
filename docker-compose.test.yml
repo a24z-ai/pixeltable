@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: pixeltable
+      POSTGRES_PASSWORD: pixeltable
+      POSTGRES_DB: pixeltable_test
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pixeltable"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PIXELTABLE_DB: pixeltable_test
+      PIXELTABLE_PGDATA: /data/pgdata
+      DATABASE_URL: postgresql://pixeltable:pixeltable@postgres:5432/pixeltable_test
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./pixeltable:/app/pixeltable
+      - pixeltable_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  test-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      API_URL: http://api:8000
+      NODE_ENV: test
+    volumes:
+      - ./js-sdk:/app/js-sdk
+      - ./tests/integration:/app/tests
+    command: ["bun", "test", "--ci"]
+
+volumes:
+  pixeltable_data:

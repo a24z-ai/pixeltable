@@ -1,0 +1,65 @@
+{
+  "name": "@a24z/pixeltable-sdk",
+  "version": "0.1.0",
+  "description": "JavaScript/TypeScript SDK for Pixeltable API",
+  "author": "Pixeltable, Inc.",
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/a24z-ai/pixeltable#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/a24z-ai/pixeltable.git",
+    "directory": "js-sdk"
+  },
+  "bugs": {
+    "url": "https://github.com/a24z-ai/pixeltable/issues"
+  },
+  "keywords": [
+    "pixeltable",
+    "api",
+    "sdk",
+    "client",
+    "typescript",
+    "javascript",
+    "ai",
+    "data"
+  ],
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "bun run build:clean && bun run build:js && bun run build:types",
+    "build:clean": "rm -rf dist",
+    "build:js": "bun build ./src/index.ts --outdir ./dist --format esm --minify && bun build ./src/index.ts --outdir ./dist --format cjs",
+    "build:types": "tsc --declaration --emitDeclarationOnly --outDir dist",
+    "dev": "bun run --watch src/index.ts",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "lint": "bun run typecheck",
+    "prepublishOnly": "bun run lint && bun run test && bun run build",
+    "generate-types": "bun run scripts/generate-types.ts"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.0.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

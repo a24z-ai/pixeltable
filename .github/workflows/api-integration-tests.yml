@@ -1,0 +1,63 @@
+name: API Integration Tests
+
+on:
+  pull_request:
+    paths:
+      - 'pixeltable/api/**'
+      - 'js-sdk/**'
+      - 'tests/integration/**'
+      - 'docker-compose.test.yml'
+      - 'Dockerfile.*'
+  push:
+    branches: [main]
+    paths:
+      - 'pixeltable/api/**'
+      - 'js-sdk/**'
+      - 'tests/integration/**'
+
+jobs:
+  integration-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Run Integration Tests
+      run: make -f Makefile.test test-ci
+    
+    - name: Upload test results
+      if: failure()
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-results
+        path: |
+          tests/integration/results/
+          docker-compose.test.yml
+    
+  sdk-unit-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - uses: oven-sh/setup-bun@v1
+      with:
+        bun-version: latest
+    
+    - name: Install SDK dependencies
+      run: |
+        cd js-sdk
+        bun install
+    
+    - name: Run SDK type checking
+      run: |
+        cd js-sdk
+        bun run typecheck
+    
+    - name: Build SDK
+      run: |
+        cd js-sdk
+        bun run build

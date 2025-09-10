@@ -1,0 +1,17 @@
+FROM oven/bun:1-slim
+
+WORKDIR /app
+
+# Copy JS SDK
+COPY js-sdk/package.json js-sdk/bun.lockb* ./js-sdk/
+WORKDIR /app/js-sdk
+RUN bun install
+
+# Copy test files
+COPY js-sdk/ ./
+COPY tests/integration/ /app/tests/
+
+# Set working directory for tests
+WORKDIR /app
+
+CMD ["bun", "test"]

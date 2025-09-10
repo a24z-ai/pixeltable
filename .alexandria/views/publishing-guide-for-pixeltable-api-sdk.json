@@ -1,0 +1,80 @@
+{
+  "id": "publishing-guide-for-pixeltable-api-sdk",
+  "version": "1.0.0",
+  "name": "Publishing Guide for Pixeltable API & SDK",
+  "description": "Codebase view extracted from documentation",
+  "rows": 2,
+  "cols": 3,
+  "cells": {
+    "npm-publishing": {
+      "coordinates": [0, 0],
+      "label": "npm Publishing",
+      "purpose": "JavaScript SDK publishing configuration and scripts",
+      "files": [
+        "js-sdk/package.json",
+        "scripts/publish-npm.sh",
+        "js-sdk/README.md",
+        "js-sdk/tsconfig.json"
+      ]
+    },
+    "python-publishing": {
+      "coordinates": [0, 1],
+      "label": "Python Publishing",
+      "purpose": "Python package configuration for API server",
+      "files": [
+        "pyproject.toml",
+        "pixeltable/api/__init__.py"
+      ]
+    },
+    "quality-assurance": {
+      "coordinates": [0, 2],
+      "label": "Quality Assurance",
+      "purpose": "Pre-commit hooks and validation",
+      "files": [
+        ".pre-commit-config.yaml",
+        "js-sdk/.pre-commit.sh"
+      ]
+    },
+    "build-config": {
+      "coordinates": [1, 0],
+      "label": "Build Configuration",
+      "purpose": "Build and bundling setup",
+      "files": [
+        "js-sdk/package.json",
+        "js-sdk/tsconfig.json"
+      ]
+    },
+    "ci-cd": {
+      "coordinates": [1, 1],
+      "label": "CI/CD",
+      "purpose": "Automated testing and publishing workflows",
+      "files": [
+        ".github/workflows/api-integration-tests.yml"
+      ]
+    },
+    "documentation": {
+      "coordinates": [1, 2],
+      "label": "Documentation",
+      "purpose": "Publishing guides and procedures",
+      "files": [
+        "PUBLISHING.md",
+        "API_MILESTONE_1.md",
+        "INTEGRATION_TESTING.md"
+      ]
+    }
+  },
+  "overviewPath": "PUBLISHING.md",
+  "category": "other",
+  "displayOrder": 0,
+  "timestamp": "2025-09-10T19:32:26.514Z",
+  "metadata": {
+    "generationType": "user",
+    "ui": {
+      "enabled": true,
+      "rows": 1,
+      "cols": 1,
+      "showCellLabels": true,
+      "cellLabelPosition": "top"
+    }
+  }
+}
