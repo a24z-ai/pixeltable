@@ -1,0 +1,23 @@
+{
+  "id": "api-data-operations",
+  "version": "1.0.0",
+  "name": "API Data Operations",
+  "description": "Complete documentation for Pixeltable API data operations including CRUD endpoints, querying, filtering, SDK usage, and integration examples",
+  "rows": 1,
+  "cols": 1,
+  "cells": {},
+  "overviewPath": "API_DATA_OPERATIONS.md",
+  "category": "other",
+  "displayOrder": 0,
+  "timestamp": "2025-09-10T22:23:13.618Z",
+  "metadata": {
+    "generationType": "user",
+    "ui": {
+      "enabled": true,
+      "rows": 1,
+      "cols": 1,
+      "showCellLabels": true,
+      "cellLabelPosition": "top"
+    }
+  }
+}
