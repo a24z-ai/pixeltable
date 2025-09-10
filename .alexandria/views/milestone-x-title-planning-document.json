@@ -1,0 +1,23 @@
+{
+  "id": "milestone-x-title-planning-document",
+  "version": "1.0.0",
+  "name": "Milestone [X]: [Title] - Planning Document",
+  "description": "Codebase view extracted from documentation",
+  "rows": 1,
+  "cols": 1,
+  "cells": {},
+  "overviewPath": "MILESTONE_TEMPLATE.md",
+  "category": "other",
+  "displayOrder": 0,
+  "timestamp": "2025-09-10T21:38:04.083Z",
+  "metadata": {
+    "generationType": "user",
+    "ui": {
+      "enabled": true,
+      "rows": 1,
+      "cols": 1,
+      "showCellLabels": true,
+      "cellLabelPosition": "top"
+    }
+  }
+}
