@@ -57,6 +57,51 @@ console.log(tableInfo);
 await client.dropTable('my_table');
 ```
 
+## Data Operations (New in v0.2.0)
+
+```typescript
+// Insert data
+await client.insertRow('my_table', {
+  id: 1,
+  name: 'John Doe',
+  score: 95.5,
+  is_active: true
+});
+
+await client.insertRows('my_table', {
+  rows: [
+    { id: 2, name: 'Jane', score: 88.0 },
+    { id: 3, name: 'Bob', score: 92.3 }
+  ]
+});
+
+// Query data
+const results = await client.query('my_table', {
+  select: ['name', 'score'],
+  where: [
+    { column: 'score', operator: '>=', value: 90 },
+    { column: 'is_active', operator: '=', value: true }
+  ],
+  order_by: [{ column: 'score', direction: 'desc' }],
+  limit: 10
+});
+
+// Update data
+await client.updateRows('my_table', {
+  where: [{ column: 'score', operator: '<', value: 60 }],
+  set: { is_active: false }
+});
+
+// Delete data
+await client.deleteRows('my_table', {
+  where: [{ column: 'is_active', operator: '=', value: false }]
+});
+
+// Count rows
+const count = await client.countRows('my_table');
+console.log(`Total rows: ${count.row_count}`);
+```
+
 ## API Reference
 
 ### `new PixeltableClient(config?)`
@@ -108,6 +153,45 @@ Deletes a table.
 
 #### Parameters
 - `name` (string): The name of the table to delete
+
+### Data Operations
+
+#### `client.insertRow(tableName, data)`
+
+Inserts a single row into a table.
+
+#### `client.insertRows(tableName, request)`
+
+Inserts multiple rows into a table.
+
+#### `client.query(tableName, request)`
+
+Performs an advanced query with filtering, sorting, and pagination.
+
+##### Query Parameters
+- `select`: Array of column names to return
+- `where`: Array of filter conditions
+- `order_by`: Array of sort specifications
+- `limit`: Maximum rows to return
+- `offset`: Number of rows to skip
+
+##### Where Clause Operators
+- `=`, `!=`, `>`, `>=`, `<`, `<=`: Comparison operators
+- `like`: Pattern matching (use % for wildcards)
+- `in`, `not_in`: List membership
+- `is_null`, `is_not_null`: Null checks
+
+#### `client.updateRows(tableName, request)`
+
+Updates rows matching the specified conditions.
+
+#### `client.deleteRows(tableName, request)`
+
+Deletes rows matching the specified conditions.
+
+#### `client.countRows(tableName)`
+
+Returns the count of rows in a table.
 
 ## TypeScript Support
 

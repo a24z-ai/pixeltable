@@ -1,31 +1,18 @@
 """Table management endpoints."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
-
 import pixeltable as pxt
 
+from pixeltable.api.models.tables import (
+    TableSchema,
+    CreateTableRequest,
+    TableInfo,
+    ColumnInfo,
+)
+
 router = APIRouter()
-
-
-class TableSchema(BaseModel):
-    """Schema for creating a table."""
-    columns: Dict[str, str]  # column_name -> type_name
-
-
-class CreateTableRequest(BaseModel):
-    """Request model for creating a table."""
-    name: str
-    schema: TableSchema
-
-
-class TableInfo(BaseModel):
-    """Response model for table information."""
-    name: str
-    column_count: int
-    columns: List[Dict[str, Any]]
 
 
 @router.get("/tables")
@@ -78,15 +65,24 @@ async def get_table_info(table_name: str) -> TableInfo:
         table = pxt.get_table(table_name)
         columns = []
         for col in table.columns():
-            columns.append({
-                "name": col.name,
-                "type": str(col.col_type),
-                "is_computed": col.is_computed,
-            })
+            columns.append(ColumnInfo(
+                name=col.name,
+                type=str(col.col_type),
+                is_computed=col.is_computed,
+                nullable=True  # Pixeltable doesn't expose this yet
+            ))
+        
+        # Try to get row count (might be expensive for large tables)
+        try:
+            rows = table.collect()
+            row_count = len(rows)
+        except:
+            row_count = None
         
         return TableInfo(
             name=table_name,
             column_count=len(columns),
+            row_count=row_count,
             columns=columns
         )
     except Exception as e:
