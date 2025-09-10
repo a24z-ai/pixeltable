@@ -29,6 +29,19 @@ from .auth import (
     RateLimitConfig,
     AuthContext,
 )
+from .media import (
+    MediaType,
+    MediaFormat,
+    StorageBackend,
+    ProcessingOperation,
+    MediaUploadRequest,
+    MediaURLIngestionRequest,
+    MediaInfo,
+    MediaProcessingRequest,
+    ProcessingJob,
+    MediaMetadata,
+    MediaSearchRequest,
+)
 
 __all__ = [
     'InsertRowRequest',
@@ -54,4 +67,15 @@ __all__ = [
     'APIUsageStats',
     'RateLimitConfig',
     'AuthContext',
+    'MediaType',
+    'MediaFormat',
+    'StorageBackend',
+    'ProcessingOperation',
+    'MediaUploadRequest',
+    'MediaURLIngestionRequest',
+    'MediaInfo',
+    'MediaProcessingRequest',
+    'ProcessingJob',
+    'MediaMetadata',
+    'MediaSearchRequest',
 ]

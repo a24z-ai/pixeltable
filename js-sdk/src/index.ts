@@ -105,6 +105,94 @@ export interface APIUsageStats {
   period_end: string;
 }
 
+export type MediaType = 'image' | 'video' | 'audio' | 'document' | 'other';
+export type MediaFormat = 'jpeg' | 'png' | 'gif' | 'webp' | 'svg' | 'mp4' | 'webm' | 'avi' | 'mov' | 
+                          'mp3' | 'wav' | 'ogg' | 'aac' | 'pdf' | 'txt' | 'doc' | 'docx' | 'xls' | 'xlsx' | 
+                          'csv' | 'json' | 'xml' | 'html' | 'md' | 'other';
+export type ProcessingOperation = 'thumbnail' | 'resize' | 'convert' | 'compress' | 'extract_metadata' | 
+                                  'extract_text' | 'extract_audio' | 'extract_frames' | 'transcode';
+export type ProcessingStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
+
+export interface MediaMetadata {
+  width?: number;
+  height?: number;
+  duration?: number;
+  frame_rate?: number;
+  bit_rate?: number;
+  sample_rate?: number;
+  channels?: number;
+  codec?: string;
+  [key: string]: any;
+}
+
+export interface MediaInfo {
+  media_id: string;
+  filename: string;
+  media_type: MediaType;
+  format: MediaFormat;
+  size_bytes: number;
+  url: string;
+  storage_path: string;
+  storage_backend: string;
+  metadata: MediaMetadata;
+  table_name?: string;
+  column_name?: string;
+  row_id?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface MediaUploadOptions {
+  metadata?: Record<string, any>;
+  table_name?: string;
+  column_name?: string;
+  row_id?: string;
+}
+
+export interface MediaURLIngestionRequest {
+  url: string;
+  filename?: string;
+  metadata?: Record<string, any>;
+  table_name?: string;
+  column_name?: string;
+  row_id?: string;
+}
+
+export interface MediaProcessingRequest {
+  operation: ProcessingOperation;
+  parameters?: Record<string, any>;
+  output_format?: MediaFormat;
+  webhook_url?: string;
+}
+
+export interface ProcessingJob {
+  job_id: string;
+  media_id: string;
+  operation: ProcessingOperation;
+  parameters?: Record<string, any>;
+  status: ProcessingStatus;
+  progress?: number;
+  result?: Record<string, any>;
+  error?: string;
+  created_at: string;
+  started_at?: string;
+  completed_at?: string;
+}
+
+export interface MediaSearchParams {
+  query?: string;
+  media_type?: MediaType;
+  format?: MediaFormat;
+  min_size?: number;
+  max_size?: number;
+  created_after?: string;
+  created_before?: string;
+  table_name?: string;
+  column_name?: string;
+  limit?: number;
+  offset?: number;
+}
+
 export class PixeltableClient {
   private baseUrl: string;
   private headers: Record<string, string>;
@@ -380,6 +468,177 @@ export class PixeltableClient {
     if (!response.ok) {
       const error = await response.json() as { detail: string };
       throw new Error(`Failed to verify auth: ${error.detail}`);
+    }
+    return response.json();
+  }
+
+  // Media Operations
+
+  async uploadMedia(file: File, options?: MediaUploadOptions): Promise<MediaInfo> {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    if (options?.metadata) {
+      formData.append('metadata', JSON.stringify(options.metadata));
+    }
+    if (options?.table_name) {
+      formData.append('table_name', options.table_name);
+    }
+    if (options?.column_name) {
+      formData.append('column_name', options.column_name);
+    }
+    if (options?.row_id) {
+      formData.append('row_id', options.row_id);
+    }
+
+    const headers = { ...this.headers };
+    delete headers['Content-Type']; // Let browser set multipart boundary
+
+    const response = await fetch(`${this.baseUrl}/media/upload`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json() as { detail: string };
+      throw new Error(`Failed to upload media: ${error.detail}`);
+    }
+    return response.json();
+  }
+
+  async ingestMediaFromURL(request: MediaURLIngestionRequest): Promise<MediaInfo> {
+    const response = await fetch(`${this.baseUrl}/media/ingest`, {
+      method: 'POST',
+      headers: this.headers,
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      const error = await response.json() as { detail: string };
+      throw new Error(`Failed to ingest media from URL: ${error.detail}`);
+    }
+    return response.json();
+  }
+
+  async getMedia(mediaId: string): Promise<MediaInfo> {
+    const response = await fetch(`${this.baseUrl}/media/${mediaId}`, {
+      headers: this.headers,
+    });
+
+    if (!response.ok) {
+      const error = await response.json() as { detail: string };
+      throw new Error(`Failed to get media: ${error.detail}`);
+    }
+    return response.json();
+  }
+
+  async downloadMedia(mediaId: string): Promise<Blob> {
+    const response = await fetch(`${this.baseUrl}/media/${mediaId}/download`, {
+      headers: this.headers,
+    });
+
+    if (!response.ok) {
+      const error = await response.json() as { detail: string };
+      throw new Error(`Failed to download media: ${error.detail}`);
+    }
+    return response.blob();
+  }
+
+  async deleteMedia(mediaId: string): Promise<{ message: string }> {
+    const response = await fetch(`${this.baseUrl}/media/${mediaId}`, {
+      method: 'DELETE',
+      headers: this.headers,
+    });
+
+    if (!response.ok) {
+      const error = await response.json() as { detail: string };
+      throw new Error(`Failed to delete media: ${error.detail}`);
+    }
+    return response.json();
+  }
+
+  async searchMedia(params?: MediaSearchParams): Promise<MediaInfo[]> {
+    const queryParams = new URLSearchParams();
+    
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined) {
+          queryParams.append(key, String(value));
+        }
+      });
+    }
+
+    const url = queryParams.toString() 
+      ? `${this.baseUrl}/media/search?${queryParams}`
+      : `${this.baseUrl}/media/search`;
+
+    const response = await fetch(url, {
+      headers: this.headers,
+    });
+
+    if (!response.ok) {
+      const error = await response.json() as { detail: string };
+      throw new Error(`Failed to search media: ${error.detail}`);
+    }
+    return response.json();
+  }
+
+  async processMedia(mediaId: string, request: MediaProcessingRequest): Promise<ProcessingJob> {
+    const response = await fetch(`${this.baseUrl}/media/${mediaId}/process`, {
+      method: 'POST',
+      headers: this.headers,
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      const error = await response.json() as { detail: string };
+      throw new Error(`Failed to process media: ${error.detail}`);
+    }
+    return response.json();
+  }
+
+  async getProcessingJob(jobId: string): Promise<ProcessingJob> {
+    const response = await fetch(`${this.baseUrl}/media/jobs/${jobId}`, {
+      headers: this.headers,
+    });
+
+    if (!response.ok) {
+      const error = await response.json() as { detail: string };
+      throw new Error(`Failed to get processing job: ${error.detail}`);
+    }
+    return response.json();
+  }
+
+  async cancelProcessingJob(jobId: string): Promise<{ message: string }> {
+    const response = await fetch(`${this.baseUrl}/media/jobs/${jobId}/cancel`, {
+      method: 'POST',
+      headers: this.headers,
+    });
+
+    if (!response.ok) {
+      const error = await response.json() as { detail: string };
+      throw new Error(`Failed to cancel processing job: ${error.detail}`);
+    }
+    return response.json();
+  }
+
+  async listProcessingJobs(mediaId?: string, status?: ProcessingStatus): Promise<ProcessingJob[]> {
+    const queryParams = new URLSearchParams();
+    if (mediaId) queryParams.append('media_id', mediaId);
+    if (status) queryParams.append('status', status);
+
+    const url = queryParams.toString()
+      ? `${this.baseUrl}/media/jobs?${queryParams}`
+      : `${this.baseUrl}/media/jobs`;
+
+    const response = await fetch(url, {
+      headers: this.headers,
+    });
+
+    if (!response.ok) {
+      const error = await response.json() as { detail: string };
+      throw new Error(`Failed to list processing jobs: ${error.detail}`);
     }
     return response.json();
   }
