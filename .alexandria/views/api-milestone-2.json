@@ -1,0 +1,23 @@
+{
+  "id": "api-milestone-2",
+  "version": "1.0.0",
+  "name": "API Milestone 2",
+  "description": "Pixeltable API Milestone 2: Data Operations & Media Support - Building upon Milestone 1 with full CRUD operations, media handling, computed columns, and authentication",
+  "rows": 1,
+  "cols": 1,
+  "cells": {},
+  "overviewPath": "API_MILESTONE_2.md",
+  "category": "other",
+  "displayOrder": 0,
+  "timestamp": "2025-09-10T21:56:44.017Z",
+  "metadata": {
+    "generationType": "user",
+    "ui": {
+      "enabled": true,
+      "rows": 1,
+      "cols": 1,
+      "showCellLabels": true,
+      "cellLabelPosition": "top"
+    }
+  }
+}
