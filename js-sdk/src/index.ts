@@ -193,6 +193,155 @@ export interface MediaSearchParams {
   offset?: number;
 }
 
+// Advanced Features Types
+export type ComputedColumnType = 'expression' | 'udf' | 'aggregate' | 'window';
+export type UDFLanguage = 'python' | 'sql' | 'javascript';
+export type BatchOperationType = 'insert' | 'update' | 'delete' | 'upsert';
+export type JobType = 'data_import' | 'data_export' | 'batch_operation' | 'media_processing' | 'table_recompute' | 'custom';
+export type JobStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+export type ImportFormat = 'csv' | 'json' | 'jsonl' | 'parquet' | 'excel';
+export type ExportFormat = 'csv' | 'json' | 'jsonl' | 'parquet' | 'excel' | 'lance';
+export type WebhookEvent = 'job.started' | 'job.progress' | 'job.completed' | 'job.failed' | 
+                          'table.created' | 'table.updated' | 'table.deleted' |
+                          'data.inserted' | 'data.updated' | 'data.deleted' |
+                          'media.uploaded' | 'media.processed';
+
+export interface ComputedColumnDefinition {
+  name: string;
+  column_type: ComputedColumnType;
+  expression: string;
+  dependencies?: string[];
+  parameters?: Record<string, any>;
+  cache_results?: boolean;
+}
+
+export interface ComputedColumnInfo extends ComputedColumnDefinition {
+  created_at: string;
+  last_computed?: string;
+  computation_time_ms?: number;
+}
+
+export interface UDFDefinition {
+  name: string;
+  language: UDFLanguage;
+  code: string;
+  parameters: Array<{ name: string; type: string }>;
+  return_type: string;
+  description?: string;
+  deterministic?: boolean;
+}
+
+export interface UDFInfo {
+  id: string;
+  name: string;
+  language: UDFLanguage;
+  parameters: Array<{ name: string; type: string }>;
+  return_type: string;
+  description?: string;
+  deterministic: boolean;
+  created_at: string;
+  updated_at?: string;
+  usage_count: number;
+}
+
+export interface BatchOperation {
+  operation: BatchOperationType;
+  table: string;
+  data?: any | any[];
+  where?: Record<string, any>;
+  set?: Record<string, any>;
+}
+
+export interface BatchRequest {
+  operations: BatchOperation[];
+  transaction?: boolean;
+  continue_on_error?: boolean;
+  return_results?: boolean;
+}
+
+export interface BatchResult {
+  total_operations: number;
+  successful: number;
+  failed: number;
+  errors: Array<Record<string, any>>;
+  results?: any[];
+  execution_time_ms: number;
+}
+
+export interface JobRequest {
+  job_type: JobType;
+  parameters: Record<string, any>;
+  priority?: number;
+  webhook_url?: string;
+  webhook_events?: string[];
+  timeout_seconds?: number;
+}
+
+export interface JobInfo {
+  job_id: string;
+  job_type: JobType;
+  status: JobStatus;
+  progress: number;
+  parameters: Record<string, any>;
+  result?: Record<string, any>;
+  error?: string;
+  created_at: string;
+  started_at?: string;
+  completed_at?: string;
+  webhook_url?: string;
+  logs: string[];
+}
+
+export interface ImportRequest {
+  table_name: string;
+  format: ImportFormat;
+  source_url?: string;
+  mapping?: Record<string, string>;
+  options?: Record<string, any>;
+  validation_rules?: Record<string, any>;
+  on_error?: 'skip' | 'fail' | 'default';
+  batch_size?: number;
+}
+
+export interface ExportRequest {
+  table_name: string;
+  format: ExportFormat;
+  destination_url?: string;
+  columns?: string[];
+  where?: Record<string, any>;
+  order_by?: Array<{ column: string; direction: 'asc' | 'desc' }>;
+  limit?: number;
+  options?: Record<string, any>;
+  compress?: boolean;
+}
+
+export interface WebhookConfig {
+  url: string;
+  events: WebhookEvent[];
+  active?: boolean;
+  secret?: string;
+  headers?: Record<string, string>;
+  retry_config?: Record<string, any>;
+}
+
+export interface WebhookInfo {
+  webhook_id: string;
+  url: string;
+  events: WebhookEvent[];
+  active: boolean;
+  created_at: string;
+  last_triggered?: string;
+  success_count: number;
+  failure_count: number;
+}
+
+export interface StreamConfig {
+  chunk_size?: number;
+  format?: 'json' | 'jsonl' | 'csv';
+  compression?: 'gzip' | 'brotli';
+  include_headers?: boolean;
+}
+
 export class PixeltableClient {
   private baseUrl: string;
   private headers: Record<string, string>;
@@ -641,6 +790,229 @@ export class PixeltableClient {
       throw new Error(`Failed to list processing jobs: ${error.detail}`);
     }
     return response.json();
+  }
+
+  // Advanced Features Operations
+
+  async executeBatchOperations(request: BatchRequest): Promise<BatchResult> {
+    const response = await fetch(`${this.baseUrl}/batch/operations`, {
+      method: 'POST',
+      headers: this.headers,
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      const error = await response.json() as { detail: string };
+      throw new Error(`Failed to execute batch operations: ${error.detail}`);
+    }
+    return response.json();
+  }
+
+  async createJob(request: JobRequest): Promise<JobInfo> {
+    const response = await fetch(`${this.baseUrl}/batch/jobs`, {
+      method: 'POST',
+      headers: this.headers,
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      const error = await response.json() as { detail: string };
+      throw new Error(`Failed to create job: ${error.detail}`);
+    }
+    return response.json();
+  }
+
+  async getJob(jobId: string): Promise<JobInfo> {
+    const response = await fetch(`${this.baseUrl}/batch/jobs/${jobId}`, {
+      headers: this.headers,
+    });
+
+    if (!response.ok) {
+      const error = await response.json() as { detail: string };
+      throw new Error(`Failed to get job: ${error.detail}`);
+    }
+    return response.json();
+  }
+
+  async listJobs(status?: JobStatus, jobType?: JobType, limit: number = 50): Promise<JobInfo[]> {
+    const queryParams = new URLSearchParams();
+    if (status) queryParams.append('status', status);
+    if (jobType) queryParams.append('job_type', jobType);
+    queryParams.append('limit', limit.toString());
+
+    const response = await fetch(`${this.baseUrl}/batch/jobs?${queryParams}`, {
+      headers: this.headers,
+    });
+
+    if (!response.ok) {
+      const error = await response.json() as { detail: string };
+      throw new Error(`Failed to list jobs: ${error.detail}`);
+    }
+    return response.json();
+  }
+
+  async cancelJob(jobId: string): Promise<{ message: string }> {
+    const response = await fetch(`${this.baseUrl}/batch/jobs/${jobId}/cancel`, {
+      method: 'POST',
+      headers: this.headers,
+    });
+
+    if (!response.ok) {
+      const error = await response.json() as { detail: string };
+      throw new Error(`Failed to cancel job: ${error.detail}`);
+    }
+    return response.json();
+  }
+
+  async importData(request: ImportRequest): Promise<JobInfo> {
+    const response = await fetch(`${this.baseUrl}/batch/import`, {
+      method: 'POST',
+      headers: this.headers,
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      const error = await response.json() as { detail: string };
+      throw new Error(`Failed to import data: ${error.detail}`);
+    }
+    return response.json();
+  }
+
+  async exportData(request: ExportRequest): Promise<JobInfo> {
+    const response = await fetch(`${this.baseUrl}/batch/export`, {
+      method: 'POST',
+      headers: this.headers,
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      const error = await response.json() as { detail: string };
+      throw new Error(`Failed to export data: ${error.detail}`);
+    }
+    return response.json();
+  }
+
+  async createComputedColumn(tableName: string, column: ComputedColumnDefinition): Promise<ComputedColumnInfo> {
+    const response = await fetch(`${this.baseUrl}/tables/${tableName}/computed-columns`, {
+      method: 'POST',
+      headers: this.headers,
+      body: JSON.stringify(column),
+    });
+
+    if (!response.ok) {
+      const error = await response.json() as { detail: string };
+      throw new Error(`Failed to create computed column: ${error.detail}`);
+    }
+    return response.json();
+  }
+
+  async listComputedColumns(tableName: string): Promise<ComputedColumnInfo[]> {
+    const response = await fetch(`${this.baseUrl}/tables/${tableName}/computed-columns`, {
+      headers: this.headers,
+    });
+
+    if (!response.ok) {
+      const error = await response.json() as { detail: string };
+      throw new Error(`Failed to list computed columns: ${error.detail}`);
+    }
+    return response.json();
+  }
+
+  async deleteComputedColumn(tableName: string, columnName: string): Promise<{ message: string }> {
+    const response = await fetch(`${this.baseUrl}/tables/${tableName}/computed-columns/${columnName}`, {
+      method: 'DELETE',
+      headers: this.headers,
+    });
+
+    if (!response.ok) {
+      const error = await response.json() as { detail: string };
+      throw new Error(`Failed to delete computed column: ${error.detail}`);
+    }
+    return response.json();
+  }
+
+  async registerUDF(tableName: string, udf: UDFDefinition): Promise<UDFInfo> {
+    const response = await fetch(`${this.baseUrl}/tables/${tableName}/udfs`, {
+      method: 'POST',
+      headers: this.headers,
+      body: JSON.stringify(udf),
+    });
+
+    if (!response.ok) {
+      const error = await response.json() as { detail: string };
+      throw new Error(`Failed to register UDF: ${error.detail}`);
+    }
+    return response.json();
+  }
+
+  async listUDFs(tableName: string): Promise<UDFInfo[]> {
+    const response = await fetch(`${this.baseUrl}/tables/${tableName}/udfs`, {
+      headers: this.headers,
+    });
+
+    if (!response.ok) {
+      const error = await response.json() as { detail: string };
+      throw new Error(`Failed to list UDFs: ${error.detail}`);
+    }
+    return response.json();
+  }
+
+  async registerWebhook(config: WebhookConfig): Promise<WebhookInfo> {
+    const response = await fetch(`${this.baseUrl}/batch/webhooks`, {
+      method: 'POST',
+      headers: this.headers,
+      body: JSON.stringify(config),
+    });
+
+    if (!response.ok) {
+      const error = await response.json() as { detail: string };
+      throw new Error(`Failed to register webhook: ${error.detail}`);
+    }
+    return response.json();
+  }
+
+  async listWebhooks(): Promise<WebhookInfo[]> {
+    const response = await fetch(`${this.baseUrl}/batch/webhooks`, {
+      headers: this.headers,
+    });
+
+    if (!response.ok) {
+      const error = await response.json() as { detail: string };
+      throw new Error(`Failed to list webhooks: ${error.detail}`);
+    }
+    return response.json();
+  }
+
+  async deleteWebhook(webhookId: string): Promise<{ message: string }> {
+    const response = await fetch(`${this.baseUrl}/batch/webhooks/${webhookId}`, {
+      method: 'DELETE',
+      headers: this.headers,
+    });
+
+    if (!response.ok) {
+      const error = await response.json() as { detail: string };
+      throw new Error(`Failed to delete webhook: ${error.detail}`);
+    }
+    return response.json();
+  }
+
+  async streamData(tableName: string, config: StreamConfig, where?: WhereClause[]): Promise<ReadableStream> {
+    const response = await fetch(`${this.baseUrl}/batch/stream/${tableName}`, {
+      method: 'POST',
+      headers: this.headers,
+      body: JSON.stringify({ ...config, where }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json() as { detail: string };
+      throw new Error(`Failed to stream data: ${error.detail}`);
+    }
+
+    if (!response.body) {
+      throw new Error('No response body for streaming');
+    }
+
+    return response.body;
   }
 }
 

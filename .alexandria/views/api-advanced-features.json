@@ -1,0 +1,23 @@
+{
+  "id": "api-advanced-features",
+  "version": "1.0.0",
+  "name": "API Advanced Features",
+  "description": "Documentation for Pixeltable API advanced features including batch operations, async jobs, computed columns, and more",
+  "rows": 1,
+  "cols": 1,
+  "cells": {},
+  "overviewPath": "docs/API_ADVANCED_FEATURES.md",
+  "category": "other",
+  "displayOrder": 0,
+  "timestamp": "2025-09-11T00:29:32.974Z",
+  "metadata": {
+    "generationType": "user",
+    "ui": {
+      "enabled": true,
+      "rows": 1,
+      "cols": 1,
+      "showCellLabels": true,
+      "cellLabelPosition": "top"
+    }
+  }
+}

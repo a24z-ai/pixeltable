@@ -1,6 +1,6 @@
 {
   "name": "@a24z/pixeltable-sdk",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "JavaScript/TypeScript SDK for Pixeltable API",
   "author": "Pixeltable, Inc.",
   "license": "Apache-2.0",
