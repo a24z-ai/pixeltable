@@ -339,9 +339,9 @@ GET /api/v1/tables/{table_name}/indexes
 
 ### System Design
 ```
-┌─────────────┐     HTTP/WS     ┌─────────────┐     Query      ┌─────────────┐
+┌─────────────┐    HTTPS/WSS    ┌─────────────┐     Query      ┌─────────────┐
 │  JS SDK     │───────────────►│  API Server  │──────────────►│  Pixeltable  │
-│  + Cache    │                 │  (FastAPI)   │               │   Core       │
+│  + Cache    │     (TLS)       │  (FastAPI)   │               │   Core       │
 └─────────────┘                 └─────────────┘               └─────────────┘
        ▲                               │                              │
        │                               ▼                              ▼
@@ -350,6 +350,12 @@ GET /api/v1/tables/{table_name}/indexes
          Cached Embeddings      │   Service    │              │   Indexes    │
                                └─────────────┘              └─────────────┘
 ```
+
+**Security Requirements:**
+- All client-server communication uses TLS 1.3+
+- API keys transmitted only over HTTPS
+- WebSocket connections upgrade from HTTPS to WSS
+- Certificate pinning recommended for mobile/desktop apps
 
 ### Client-Side Caching & Sync Engine Considerations
 
