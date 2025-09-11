@@ -357,75 +357,115 @@ GET /api/v1/tables/{table_name}/indexes
 - WebSocket connections upgrade from HTTPS to WSS
 - Certificate pinning recommended for mobile/desktop apps
 
-### Client-Side Caching & Sync Engine Considerations
+### Sync Engine Architecture (In Development)
 
-#### The Sync Engine Movement
-Modern applications like Linear, Figma, and Notion use sync engines for:
-- **Instant UI responses** - No waiting for server roundtrips
-- **Offline capability** - Full functionality without network
-- **Conflict resolution** - Automatic merging of concurrent changes
-- **Reduced server load** - Fewer requests, lower costs
+#### Why Skip Intermediate Caching
+Rather than implementing temporary caching solutions, we're going directly to a proper sync engine architecture that will provide:
+- **Instant responses** (<5ms) for all operations
+- **Full offline capability** with automatic sync when reconnected  
+- **Conflict-free** concurrent editing support
+- **Reduced costs** through minimal server calls
 
-#### Alexandria's Caching Strategy Options
+#### Existing Sync Engine Solutions
 
-**Option 1: Simple LRU Cache (Recommended for MVP)**
+**Option 1: Build on Replicache** (Recommended)
 ```typescript
-class EmbeddingCache {
-  private cache: Map<string, Float32Array>;
-  private lru: string[];
+// Replicache provides the sync infrastructure
+import { Replicache } from 'replicache';
+
+class PixeltableSyncEngine {
+  private rep: Replicache;
   
-  async getEmbedding(text: string, model: string): Promise<Float32Array> {
-    const key = `${model}:${text}`;
-    if (this.cache.has(key)) {
-      return this.cache.get(key);  // Instant response
-    }
-    const embedding = await this.api.generateEmbedding(text, model);
-    this.cache.set(key, embedding);
-    return embedding;
+  constructor() {
+    this.rep = new Replicache({
+      name: 'pixeltable',
+      licenseKey: process.env.REPLICACHE_KEY,
+      pushURL: '/api/replicache/push',
+      pullURL: '/api/replicache/pull',
+    });
+  }
+  
+  // Instant local search with background sync
+  async search(query: string): Promise<Results> {
+    return await this.rep.query(async (tx) => {
+      // Query local SQLite instantly
+      return await tx.scan({ prefix: 'embeddings/' });
+    });
   }
 }
 ```
+- **Pros**: Battle-tested (used by Reflect, Roam), handles conflicts, good docs
+- **Cons**: Requires server-side integration, licensing costs
 
-**Option 2: IndexedDB Persistent Cache (Better for frequent users)**
-```typescript
-class PersistentEmbeddingCache {
-  private memory: Map<string, Float32Array>;  // Hot cache
-  private db: IDBDatabase;  // Cold storage
-  
-  async getEmbedding(text: string, model: string): Promise<Float32Array> {
-    // Check memory first (microseconds)
-    // Check IndexedDB second (milliseconds)  
-    // Hit API last (100-500ms)
-  }
-}
+**Option 2: PowerSync for Vector Support**
+```typescript  
+// PowerSync with custom vector extension
+import { PowerSyncDatabase } from '@journeyapps/powersync-sdk-web';
+
+const db = new PowerSyncDatabase({
+  schema: pixeltableSchema,
+  database: { dbFilename: 'pixeltable.db' }
+});
 ```
+- **Pros**: SQLite-based, supports custom extensions, proven scale
+- **Cons**: Need to add vector support ourselves
 
-**Option 3: Future Sync Engine (Long-term vision)**
+**Option 3: ElectricSQL** (New, Promising)
+```typescript
+// ElectricSQL - Postgres sync to SQLite
+import { electrify } from 'electric-sql/wa-sqlite';
+
+const electric = await electrify(conn, schema);
+await electric.db.raw`
+  SELECT * FROM layouts 
+  WHERE embedding <-> ${queryVector} < 0.3
+  ORDER BY embedding <-> ${queryVector}
+`;
+```
+- **Pros**: Real Postgres with pgvector support, automatic sync
+- **Cons**: Still in beta, may need optimization for embeddings
+
+**Option 4: Custom Implementation**
+Many companies build their own because:
+- **Linear**: Custom sync for performance requirements
+- **Figma**: Multiplayer editing needs custom CRDTs
+- **Notion**: Complex permission model requires custom logic
+- **Superhuman**: Email-specific optimizations
+
+For Pixeltable's unique needs (embeddings, computed columns, media), a hybrid approach may be best:
 ```typescript
 class PixeltableSyncEngine {
-  // Local SQLite with embeddings
-  private local: SQLiteVectorDB;
-  // WebSocket for real-time sync
-  private sync: WebSocket;
-  
-  // Instant local search
-  async search(query: string): Promise<Results> {
-    // Search local database immediately
-    const localResults = await this.local.search(query);
-    
-    // Sync with server in background
-    this.sync.send({ type: 'search', query });
-    
-    return localResults;
-  }
+  // Use Replicache for sync infrastructure
+  private sync: Replicache;
+  // Use SQLite WASM for vector operations  
+  private vectorDB: SQLiteVectorDB;
+  // Custom embedding cache
+  private embeddings: EmbeddingStore;
 }
 ```
 
-#### Performance Impact for Alexandria
-- **Current Python**: ~180ms average search latency
-- **With API only**: ~150-200ms (network dependent)
-- **With LRU cache**: ~10ms for cached, ~150ms for uncached
-- **With sync engine**: <5ms for all searches (after initial sync)
+#### Current Status & User Communication
+
+**For Users:**
+```typescript
+// Current API (available now)
+const client = new PixeltableClient();
+const results = await client.search(...);  // 150-200ms latency
+
+// Coming Soon: Sync Engine (Q2 2025)
+const client = new PixeltableClient({ 
+  syncEngine: true  // Enable when available
+});
+const results = await client.search(...);  // <5ms latency
+```
+
+**Development Timeline:**
+- **Now - Q1 2025**: API-based operations (current)
+- **Q2 2025**: Beta sync engine for select customers
+- **Q3 2025**: General availability
+
+**Message to Alexandria:**
+"While the sync engine is in development, the current API provides full functionality with 150-200ms search latency. The sync engine will be a seamless upgrade providing <5ms responses when it launches in Q2 2025."
 
 ### Data Flow for Alexandria Search
 1. User enters search query in Alexandria UI
@@ -653,40 +693,50 @@ const results = await layouts
 
 ## 8. Implementation Recommendations
 
-### Caching Architecture Evolution Path
+### Sync Engine Implementation Strategy
 
-#### Phase 1: Basic LRU Cache (Weeks 1-2)
-Implement simple in-memory caching to validate performance gains:
-- Memory-only LRU cache with 1000 embedding limit
-- TTL of 1 hour for cached embeddings
-- Hit rate tracking for analytics
-- Expected: 60-70% cache hit rate for Alexandria's use patterns
+#### Recommended Approach: Hybrid Architecture
+Based on analysis of existing solutions and Pixeltable's unique requirements:
 
-#### Phase 2: Persistent Cache (Month 2)
-Add IndexedDB for cross-session performance:
-- Tiered caching: memory (hot) → IndexedDB (warm) → API (cold)
-- Store up to 10,000 embeddings locally
-- Background sync for popular queries
-- Expected: 85-90% cache hit rate
+1. **Use Replicache for sync infrastructure** (don't reinvent the wheel)
+   - Proven at scale with Reflect, Roam Research
+   - Handles conflict resolution and offline state
+   - Well-documented with good TypeScript support
 
-#### Phase 3: Sync Engine Exploration (Month 3+)
-Evaluate full local-first architecture:
-- SQLite WASM with vector support
-- WebSocket real-time sync
-- Conflict-free replicated data types (CRDTs)
-- Expected: 99%+ cache hit rate, <5ms latency
+2. **SQLite WASM for vector operations**
+   - sqlite-vec extension for vector similarity
+   - Runs entirely in browser/Node.js
+   - Supports the SQL queries Alexandria needs
 
-### Why This Matters for Alexandria
-Alexandria's users perform many repeated searches:
-- "React hooks" variations searched 100+ times/day
-- Common patterns searched by multiple users
-- Tutorial/documentation queries with high repetition
+3. **Custom embedding layer**
+   - Store embeddings in optimized format
+   - Support multiple models simultaneously
+   - Handle computed columns
 
-With caching, Alexandria could see:
-- **10x faster** responses for cached queries
-- **50% reduction** in API calls
-- **Better UX** during network issues
-- **Lower costs** from reduced server load
+#### Implementation Phases
+
+**Phase 1: Foundation (Current - Milestone 2.5)**
+- Standard API with 150-200ms latency
+- Server-side caching for common queries
+- Prepare data model for sync compatibility
+
+**Phase 2: Sync Engine Beta (Q2 2025)**
+- Deploy Replicache integration
+- Implement SQLite WASM with vector support
+- Beta test with Alexandria team
+- Target: <10ms latency for cached data
+
+**Phase 3: Production Release (Q3 2025)**
+- Full offline support
+- Conflict resolution for collaborative features
+- Background sync optimization
+- Target: <5ms latency for all operations
+
+### Why Direct to Sync Engine?
+- **Avoid technical debt**: No migration from intermediate solutions
+- **Better user experience**: One major improvement vs. multiple small ones
+- **Competitive advantage**: Match Linear/Figma performance immediately
+- **Alexandria's scale**: 10,000+ users justifies proper solution
 
 ## 8. Rollout Strategy
 
@@ -716,17 +766,21 @@ With caching, Alexandria could see:
 - [ ] **Q**: Should we support multiple embedding models simultaneously?
   - **Decision**: Yes - critical for Alexandria's future needs
   
-- [ ] **Q**: Client-side caching implementation approach?
-  - **Decision**: Start with LRU cache (Option 1), evolve to IndexedDB (Option 2) based on usage patterns
-  - **Rationale**: Simple cache provides immediate 10-20x performance boost for repeated queries
-  - **Future**: Sync engine (Option 3) after validating product-market fit
+- [ ] **Q**: Which sync engine approach to use?
+  - **Decision**: Hybrid - Replicache + SQLite WASM + custom embeddings
+  - **Rationale**: Leverages proven infrastructure while supporting vector operations
+  - **Timeline**: Q2 2025 beta, Q3 2025 production
 
 - [ ] **Q**: Support for custom embedding models?
   - **Decision**: Phase 2 - focus on standard models first
   
-- [ ] **Q**: Should we implement WebSocket support for real-time sync?
-  - **Decision**: Not in MVP - add when moving toward sync engine architecture
-  - **Rationale**: HTTP polling sufficient for current Alexandria use case
+- [ ] **Q**: Build vs. buy for sync engine?
+  - **Decision**: Buy core (Replicache), build vector-specific features
+  - **Rationale**: Most companies build custom due to unique requirements, but Replicache provides solid foundation
+  
+- [ ] **Q**: How to communicate sync engine timeline to users?
+  - **Decision**: Clear roadmap with Q2 2025 beta, API works fully now
+  - **Message**: "Full functionality available today, 30x performance boost coming Q2"
 
 ### Product Decisions
 - [ ] **Q**: Free tier embedding limits?
