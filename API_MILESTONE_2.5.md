@@ -341,23 +341,95 @@ GET /api/v1/tables/{table_name}/indexes
 ```
 ┌─────────────┐     HTTP/WS     ┌─────────────┐     Query      ┌─────────────┐
 │  JS SDK     │───────────────►│  API Server  │──────────────►│  Pixeltable  │
-│  (Native)   │                 │  (FastAPI)   │               │   Core       │
+│  + Cache    │                 │  (FastAPI)   │               │   Core       │
 └─────────────┘                 └─────────────┘               └─────────────┘
-       │                               │                              │
+       ▲                               │                              │
        │                               ▼                              ▼
        │                        ┌─────────────┐              ┌─────────────┐
-       └──────────────────────►│  Embedding   │              │   Vector     │
-            Direct Connection   │   Service    │              │   Indexes    │
+       └────────────────────────│  Embedding   │              │   Vector     │
+         Cached Embeddings      │   Service    │              │   Indexes    │
                                └─────────────┘              └─────────────┘
 ```
 
+### Client-Side Caching & Sync Engine Considerations
+
+#### The Sync Engine Movement
+Modern applications like Linear, Figma, and Notion use sync engines for:
+- **Instant UI responses** - No waiting for server roundtrips
+- **Offline capability** - Full functionality without network
+- **Conflict resolution** - Automatic merging of concurrent changes
+- **Reduced server load** - Fewer requests, lower costs
+
+#### Alexandria's Caching Strategy Options
+
+**Option 1: Simple LRU Cache (Recommended for MVP)**
+```typescript
+class EmbeddingCache {
+  private cache: Map<string, Float32Array>;
+  private lru: string[];
+  
+  async getEmbedding(text: string, model: string): Promise<Float32Array> {
+    const key = `${model}:${text}`;
+    if (this.cache.has(key)) {
+      return this.cache.get(key);  // Instant response
+    }
+    const embedding = await this.api.generateEmbedding(text, model);
+    this.cache.set(key, embedding);
+    return embedding;
+  }
+}
+```
+
+**Option 2: IndexedDB Persistent Cache (Better for frequent users)**
+```typescript
+class PersistentEmbeddingCache {
+  private memory: Map<string, Float32Array>;  // Hot cache
+  private db: IDBDatabase;  // Cold storage
+  
+  async getEmbedding(text: string, model: string): Promise<Float32Array> {
+    // Check memory first (microseconds)
+    // Check IndexedDB second (milliseconds)  
+    // Hit API last (100-500ms)
+  }
+}
+```
+
+**Option 3: Future Sync Engine (Long-term vision)**
+```typescript
+class PixeltableSyncEngine {
+  // Local SQLite with embeddings
+  private local: SQLiteVectorDB;
+  // WebSocket for real-time sync
+  private sync: WebSocket;
+  
+  // Instant local search
+  async search(query: string): Promise<Results> {
+    // Search local database immediately
+    const localResults = await this.local.search(query);
+    
+    // Sync with server in background
+    this.sync.send({ type: 'search', query });
+    
+    return localResults;
+  }
+}
+```
+
+#### Performance Impact for Alexandria
+- **Current Python**: ~180ms average search latency
+- **With API only**: ~150-200ms (network dependent)
+- **With LRU cache**: ~10ms for cached, ~150ms for uncached
+- **With sync engine**: <5ms for all searches (after initial sync)
+
 ### Data Flow for Alexandria Search
 1. User enters search query in Alexandria UI
-2. JS SDK generates embedding via API or cached model
-3. Similarity search executed with filters
-4. Vector index returns top-k results
-5. Results enriched with metadata
-6. Formatted response sent to client
+2. JS SDK checks local cache for embedding
+3. If cached: Use immediately (<10ms)
+4. If not cached: Request from API (~100ms)
+5. Execute similarity search with filters
+6. Vector index returns top-k results
+7. Results enriched with metadata
+8. Update local cache for future queries
 
 ### Performance Optimizations
 ```python
@@ -573,6 +645,43 @@ const results = await layouts
 
 ---
 
+## 8. Implementation Recommendations
+
+### Caching Architecture Evolution Path
+
+#### Phase 1: Basic LRU Cache (Weeks 1-2)
+Implement simple in-memory caching to validate performance gains:
+- Memory-only LRU cache with 1000 embedding limit
+- TTL of 1 hour for cached embeddings
+- Hit rate tracking for analytics
+- Expected: 60-70% cache hit rate for Alexandria's use patterns
+
+#### Phase 2: Persistent Cache (Month 2)
+Add IndexedDB for cross-session performance:
+- Tiered caching: memory (hot) → IndexedDB (warm) → API (cold)
+- Store up to 10,000 embeddings locally
+- Background sync for popular queries
+- Expected: 85-90% cache hit rate
+
+#### Phase 3: Sync Engine Exploration (Month 3+)
+Evaluate full local-first architecture:
+- SQLite WASM with vector support
+- WebSocket real-time sync
+- Conflict-free replicated data types (CRDTs)
+- Expected: 99%+ cache hit rate, <5ms latency
+
+### Why This Matters for Alexandria
+Alexandria's users perform many repeated searches:
+- "React hooks" variations searched 100+ times/day
+- Common patterns searched by multiple users
+- Tutorial/documentation queries with high repetition
+
+With caching, Alexandria could see:
+- **10x faster** responses for cached queries
+- **50% reduction** in API calls
+- **Better UX** during network issues
+- **Lower costs** from reduced server load
+
 ## 8. Rollout Strategy
 
 ### Alpha Testing with Alexandria (Week 3)
@@ -601,11 +710,17 @@ const results = await layouts
 - [ ] **Q**: Should we support multiple embedding models simultaneously?
   - **Decision**: Yes - critical for Alexandria's future needs
   
-- [ ] **Q**: Client-side vs server-side embedding caching?
-  - **Decision**: Both - server for shared, client for session
+- [ ] **Q**: Client-side caching implementation approach?
+  - **Decision**: Start with LRU cache (Option 1), evolve to IndexedDB (Option 2) based on usage patterns
+  - **Rationale**: Simple cache provides immediate 10-20x performance boost for repeated queries
+  - **Future**: Sync engine (Option 3) after validating product-market fit
 
 - [ ] **Q**: Support for custom embedding models?
   - **Decision**: Phase 2 - focus on standard models first
+  
+- [ ] **Q**: Should we implement WebSocket support for real-time sync?
+  - **Decision**: Not in MVP - add when moving toward sync engine architecture
+  - **Rationale**: HTTP polling sufficient for current Alexandria use case
 
 ### Product Decisions
 - [ ] **Q**: Free tier embedding limits?
