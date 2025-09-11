@@ -1,0 +1,23 @@
+{
+  "id": "sdk-adoption-strategy",
+  "version": "1.0.0",
+  "name": "SDK Adoption Strategy",
+  "description": "Comprehensive strategy for increasing JavaScript SDK adoption including examples, documentation approach, and adaptation of existing samples",
+  "rows": 1,
+  "cols": 1,
+  "cells": {},
+  "overviewPath": "js-sdk/SDK_ADOPTION_STRATEGY.md",
+  "category": "other",
+  "displayOrder": 0,
+  "timestamp": "2025-09-11T04:28:17.944Z",
+  "metadata": {
+    "generationType": "user",
+    "ui": {
+      "enabled": true,
+      "rows": 1,
+      "cols": 1,
+      "showCellLabels": true,
+      "cellLabelPosition": "top"
+    }
+  }
+}
